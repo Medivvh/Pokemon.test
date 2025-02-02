@@ -3,3 +3,6 @@ HEADERS = {
     'trainer_token': 'd6a9dcab85977468c4115f7f516325ff',
     'Content-Type': 'application/json'
 }
+
+Login = 'dv.shh@mail.ru'
+Password = '1QAZXSW'

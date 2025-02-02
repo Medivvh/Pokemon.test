@@ -1,6 +1,12 @@
 import pytest
 import requests
 import random
+
+from playwright.sync_api import sync_playwright
+from requests import session
+from sqlalchemy.orm import scoped_session
+from LoginPage import LoginPage
+from BasePage import BasePage
 from db import create_request
 
 from constant import HEADERS, BASE_URL
@@ -64,9 +70,9 @@ def create_pokemon(auth_session, pokemon_data):
 def choose_trainer():
     def _choose_trainer():
         list_of_trainers = create_request(f'SELECT trainers.id FROM public.trainers '
-                                          f'RIGHT JOIN public.pokemons ON trainers.id = pokemons.trainer_id ')
-        random_trainer = random.choice(list_of_trainers)
-        return random_trainer
+                                          f'RIGHT JOIN public.pokemons ON trainers.id = pokemons.trainer_id '
+                                          f'order by random() limit 1')
+        return list_of_trainers  # random_trainer
 
     return _choose_trainer
 
@@ -74,10 +80,9 @@ def choose_trainer():
 @pytest.fixture
 def choose_pokemon():
     def _choose_pokemon():
-        list_of_pokemons = create_request(f'SELECT * FROM public.pokemons')
-
-        random_pokemon = random.choice(list_of_pokemons)
-        return random_pokemon
+        list_of_pokemons = create_request(f'SELECT * FROM public.pokemons '
+                                          f'order by random() limit 1')
+        return list_of_pokemons
 
     return _choose_pokemon
 
@@ -86,7 +91,7 @@ def choose_pokemon():
 def choose_enemy_pokemon():
     def _choose_enemy_pokemon():
         list_of_pokemons = create_request(f'SELECT * FROM public.pokemons WHERE "in_pokeball" = 1 '
-                                          f'AND NOT "trainer_id" = 26010')  # подумать над динамичным значением тренера
+                                          f'AND NOT "trainer_id" = 26010')
         random_pokemon = random.choice(list_of_pokemons)
         return random_pokemon
 
@@ -106,9 +111,44 @@ def add_pokemon_in_pokeball(auth_session, create_pokemon):
 @pytest.fixture
 def choose_battle():
     def _choose_battle():
-        list_of_battles = create_request(f'SELECT * FROM public.battles')
+        list_of_battles = create_request(f'SELECT * FROM public.battles order by random() limit 1')
 
-        random_battle = random.choice(list_of_battles)
-        return random_battle
+        return list_of_battles
 
     return _choose_battle
+
+
+@pytest.fixture
+def battle(auth_session, add_pokemon_in_pokeball, choose_enemy_pokemon):
+    mine_pokemon = add_pokemon_in_pokeball
+    enemy_pokemon = str(choose_enemy_pokemon().get('id'))
+    battle = auth_session.post(
+        f'{BASE_URL}/v2/battle',
+        json={
+            "attacking_pokemon": mine_pokemon,
+            "defending_pokemon": enemy_pokemon
+        }
+    )
+    assert_that(battle.status_code).is_equal_to(200)
+    assert_that(battle.json().get('message')).is_equal_to('Битва проведена')
+    return battle
+
+@pytest.fixture(scope='session')
+def page():
+    playwright = sync_playwright().start()
+    browser = playwright.chromium.launch(headless=False, slow_mo=500)  #напомнить Тимуру показать без параметров
+    page = browser.new_page()
+    yield page
+    browser.close()
+    playwright.stop()
+
+@pytest.fixture()
+def base_page(page):
+    base = BasePage(page)
+    return base
+
+@pytest.fixture() #Fixture authorisation page
+def auth(page):
+    auth = LoginPage(page)
+    return auth
+
