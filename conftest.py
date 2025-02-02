@@ -91,7 +91,7 @@ def choose_pokemon():
 def choose_enemy_pokemon():
     def _choose_enemy_pokemon():
         list_of_pokemons = create_request(f'SELECT * FROM public.pokemons WHERE "in_pokeball" = 1 '
-                                          f'AND NOT "trainer_id" = 26010 ORDER BY random() limit 1' )
+                                          f'AND NOT "trainer_id" = 26010 ORDER BY random() limit 1')
         random_pokemon = random.choice(list_of_pokemons)
         return random_pokemon
 
@@ -100,14 +100,15 @@ def choose_enemy_pokemon():
 
 @pytest.fixture
 def add_pokemon_in_pokeball(auth_session, create_pokemon):
-    # def _add_in_pokeball():
+    def _add_in_pokeball():   #new
         response, data = create_pokemon()
         pokemon_id = response.get('id')
         add_pokemon = auth_session.post(f'{BASE_URL}/v2/trainers/add_pokeball',
                                         json={"pokemon_id": pokemon_id})
         assert_that(add_pokemon.status_code).is_equal_to(200)
         return pokemon_id
-    # return _add_in_pokeball
+
+    return _add_in_pokeball
 
 
 @pytest.fixture
@@ -135,22 +136,24 @@ def battle(auth_session, add_pokemon_in_pokeball, choose_enemy_pokemon):
     assert_that(battle.json().get('message')).is_equal_to('Битва проведена')
     return battle
 
+
 @pytest.fixture(scope='session')
 def page():
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=False, slow_mo=500)  #напомнить Тимуру показать без параметров
+    browser = playwright.chromium.launch(headless=False, slow_mo=500)  # напомнить Тимуру показать без параметров
     page = browser.new_page()
     yield page
     browser.close()
     playwright.stop()
+
 
 @pytest.fixture()
 def base_page(page):
     base = BasePage(page)
     return base
 
-@pytest.fixture() #Fixture authorisation page
+
+@pytest.fixture()  # Fixture authorisation page
 def auth(page):
     auth = LoginPage(page)
     return auth
-
