@@ -9,7 +9,7 @@ from assertpy import assert_that
 from constant import BASE_URL
 
 
-def test_create_pokemon(create_pokemon, auth):
+def test_create_pokemon(create_pokemon, pokemons_page, trainer_page):
     response, data = create_pokemon()
     assert_that(response.get('message')).is_equal_to('Покемон создан')
     pokemon_id = response.get('id')
@@ -32,8 +32,8 @@ def test_create_pokemon(create_pokemon, auth):
     delta_time_1 = real_date - timedelta(seconds=8)
     delta_time_2 = real_date + timedelta(seconds=8)
     assert_that(pokemon_date).is_between(delta_time_1, delta_time_2)
-    auth.login(Login, Password)
-
+    pokemons_page.check_created_pokemon(str(pokemon_id))
+    trainer_page.check_created_pokemon_in_trainers_bag(str(pokemon_id))
 
 def test_get_list_of_pokemons(auth_session):
     get_pokemons = auth_session.get(f'{BASE_URL}/v2/pokemons')
@@ -114,7 +114,7 @@ def test_change_pokemon(create_pokemon, auth_session, pokemon_data):
     )
 
 
-def test_add_pokemon_in_pokeball(auth_session, create_pokemon):
+def test_add_pokemon_in_pokeball(auth_session, create_pokemon, trainer_page):
     response, data = create_pokemon()
     pokemon_id = response.get('id')
     add_pokemon = auth_session.post(f'{BASE_URL}/v2/trainers/add_pokeball',
@@ -124,6 +124,9 @@ def test_add_pokemon_in_pokeball(auth_session, create_pokemon):
     assert_that(table_data[0]).contains_entry(
         {'in_pokeball': 1}
     )
+    trainer_page.check_pokeball(str(pokemon_id))
+
+
 
 
 def test_delete_pokemon_from_pokeball(auth_session, add_pokemon_in_pokeball):
@@ -141,13 +144,16 @@ def test_delete_pokemon_from_pokeball(auth_session, add_pokemon_in_pokeball):
         {'in_pokeball': 0}
     )
 
-def test_battle(battle):
+def test_battle(battle, trainer_page):
     battle_id = battle.json().get('id')
     table_data = create_request(f"SELECT * FROM public.battles WHERE id = '{battle_id}'")
     assert_that(table_data).is_not_empty()
     assert_that(table_data[0]).contains_entry(
         {'id': int(battle_id)}
     )
+    attacking_pok_id = table_data[0].get('attacking_pok_id')
+    trainer_page.check_battle(str(attacking_pok_id))
+
 
 
 def test_get_battles(auth_session):

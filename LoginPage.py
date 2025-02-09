@@ -1,5 +1,5 @@
 from BasePage import BasePage
-from conftest import base_page
+
 
 
 class LoginPage(BasePage):

@@ -5,7 +5,8 @@ import random
 from playwright.sync_api import sync_playwright
 from requests import session
 from sqlalchemy.orm import scoped_session
-from LoginPage import LoginPage
+from TrainerPage import TrainerPage
+from PokemonsPage import PokemonsPage
 from BasePage import BasePage
 from db import create_request
 
@@ -123,7 +124,7 @@ def choose_battle():
 
 @pytest.fixture
 def battle(auth_session, add_pokemon_in_pokeball, choose_enemy_pokemon):
-    mine_pokemon = add_pokemon_in_pokeball
+    mine_pokemon = add_pokemon_in_pokeball()
     enemy_pokemon = str(choose_enemy_pokemon().get('id'))
     battle = auth_session.post(
         f'{BASE_URL}/v2/battle',
@@ -137,12 +138,16 @@ def battle(auth_session, add_pokemon_in_pokeball, choose_enemy_pokemon):
     return battle
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def page():
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=False, slow_mo=500)  # напомнить Тимуру показать без параметров
-    page = browser.new_page()
-    yield page
+    browser = playwright.chromium.launch(headless=False, slow_mo=1000)
+    context = browser.new_context()
+
+    context.add_init_script(
+        script = f'document.cookie = "session_id=d6a9dcab85977468c4115f7f516325ff";'
+    )
+    yield context.new_page()
     browser.close()
     playwright.stop()
 
@@ -153,7 +158,12 @@ def base_page(page):
     return base
 
 
-@pytest.fixture()  # Fixture authorisation page
-def auth(page):
-    auth = LoginPage(page)
-    return auth
+@pytest.fixture()
+def pokemons_page(page):
+    poks_page = PokemonsPage(page)
+    return poks_page
+
+@pytest.fixture()
+def trainer_page(page):
+    trainer_page = TrainerPage(page)
+    return trainer_page
