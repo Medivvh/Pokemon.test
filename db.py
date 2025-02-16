@@ -10,3 +10,5 @@ def create_request(sql_request):
         result = connection.execute(text(sql_request))
         data = [row._asdict() for row in result]
     return data
+
+
