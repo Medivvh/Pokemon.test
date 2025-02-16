@@ -1,10 +1,8 @@
-from playwright.sync_api import expect
-
 from BasePage import BasePage
 
-class PokemonsPage(BasePage):
 
-    TRAINER_BUTTON_SELECTOR = '#root > div > header > div > div.header__container > button.header__id'
+class PokemonsPage(BasePage):
+    TRAINER_BUTTON_SELECTOR = "div.header__container > .header__id"
 
     def __init__(self, page):
         super().__init__(page)
@@ -14,4 +12,3 @@ class PokemonsPage(BasePage):
         self.go_to_url()
         self.find_object_by_text(text)
         self.click_selector(self.TRAINER_BUTTON_SELECTOR)
-

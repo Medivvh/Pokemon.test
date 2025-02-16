@@ -3,8 +3,6 @@ import requests
 import random
 
 from playwright.sync_api import sync_playwright
-from requests import session
-from sqlalchemy.orm import scoped_session
 from TrainerPage import TrainerPage
 from PokemonsPage import PokemonsPage
 from BasePage import BasePage
@@ -101,7 +99,7 @@ def choose_enemy_pokemon():
 
 @pytest.fixture
 def add_pokemon_in_pokeball(auth_session, create_pokemon):
-    def _add_in_pokeball():   #new
+    def _add_in_pokeball():  # new
         response, data = create_pokemon()
         pokemon_id = response.get('id')
         add_pokemon = auth_session.post(f'{BASE_URL}/v2/trainers/add_pokeball',
@@ -135,17 +133,17 @@ def battle(auth_session, add_pokemon_in_pokeball, choose_enemy_pokemon):
     )
     assert_that(battle.status_code).is_equal_to(200)
     assert_that(battle.json().get('message')).is_equal_to('Битва проведена')
-    return battle
+    return battle, mine_pokemon, enemy_pokemon
 
 
 @pytest.fixture()
 def page():
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=False, slow_mo=1000)
+    browser = playwright.chromium.launch(headless=False, slow_mo=50)
     context = browser.new_context()
 
     context.add_init_script(
-        script = f'document.cookie = "session_id=d6a9dcab85977468c4115f7f516325ff";'
+        script=f'document.cookie = "session_id=d6a9dcab85977468c4115f7f516325ff";'
     )
     yield context.new_page()
     browser.close()
@@ -162,6 +160,7 @@ def base_page(page):
 def pokemons_page(page):
     poks_page = PokemonsPage(page)
     return poks_page
+
 
 @pytest.fixture()
 def trainer_page(page):

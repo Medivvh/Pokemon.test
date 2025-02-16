@@ -2,7 +2,6 @@ import pytest
 from datetime import timedelta
 from datetime import datetime
 import random
-from constant import Login, Password
 from conftest import auth_session, choose_trainer, choose_pokemon
 from db import create_request
 from assertpy import assert_that
@@ -22,7 +21,7 @@ def test_create_pokemon(create_pokemon, pokemons_page, trainer_page):
         {'stage': 1},
         {'win_count': 0},
         {'attack': 1},
-        {'trainer_id': 26010},
+        {'trainer_id': 26010},  # dobat' peremennuyu s constanti
         {'status': 1},
         {'in_pokeball': 0},
         {'photo_id': int(data['photo_id'])}
@@ -34,6 +33,7 @@ def test_create_pokemon(create_pokemon, pokemons_page, trainer_page):
     assert_that(pokemon_date).is_between(delta_time_1, delta_time_2)
     pokemons_page.check_created_pokemon(str(pokemon_id))
     trainer_page.check_created_pokemon_in_trainers_bag(str(pokemon_id))
+
 
 def test_get_list_of_pokemons(auth_session):
     get_pokemons = auth_session.get(f'{BASE_URL}/v2/pokemons')
@@ -89,7 +89,6 @@ def test_get_list_with_query(auth_session, query, choose_trainer, choose_pokemon
     assert_that(db_ids).is_equal_to(get_list_ids)
 
 
-
 def test_change_pokemon(create_pokemon, auth_session, pokemon_data):
     response, data = create_pokemon()
     assert_that(response.get('message')).is_equal_to('Покемон создан')
@@ -127,8 +126,6 @@ def test_add_pokemon_in_pokeball(auth_session, create_pokemon, trainer_page):
     trainer_page.check_pokeball(str(pokemon_id))
 
 
-
-
 def test_delete_pokemon_from_pokeball(auth_session, add_pokemon_in_pokeball):
     pokemon_id = add_pokemon_in_pokeball
     table_data = create_request(f"SELECT * FROM public.pokemons WHERE id = '{pokemon_id}'")
@@ -144,16 +141,17 @@ def test_delete_pokemon_from_pokeball(auth_session, add_pokemon_in_pokeball):
         {'in_pokeball': 0}
     )
 
+
 def test_battle(battle, trainer_page):
-    battle_id = battle.json().get('id')
+    response, mine_pokemon_id, enemy_pokemon_id = battle
+    battle_id = response.json().get('id')
     table_data = create_request(f"SELECT * FROM public.battles WHERE id = '{battle_id}'")
     assert_that(table_data).is_not_empty()
     assert_that(table_data[0]).contains_entry(
         {'id': int(battle_id)}
     )
-    attacking_pok_id = table_data[0].get('attacking_pok_id')
-    trainer_page.check_battle(str(attacking_pok_id))
-
+    trainer_page.check_battle_and_attacking_pok(mine_pokemon_id)
+    trainer_page.check_battle_and_defending_pok(enemy_pokemon_id)
 
 
 def test_get_battles(auth_session):
